@@ -8,12 +8,12 @@ import '../../viewmodels/shuttle_viewmodel.dart';
 import '../widgets/section_card.dart';
 import '../widgets/shimmer_loading.dart';
 
-/// Ana Sayfa — açık erişimli, öğrenci girişi yok.
+/// Ana Sayfa — Açık erişimli, öğrenci girişi yok.
 ///
-/// Mobil dikey (portrait) düzen:
+/// Mobil dikey (portrait) düzen, SafeArea + SingleChildScrollView:
 /// 1. "Kampüste ara..." genel arama çubuğu
-/// 2. GÜNLÜK YEMEK MENÜSÜ kartı (4 farklı ikonlu yemek bileşeni)
-/// 3. RİNG SAATLERİ - SHUTTLE kartı (büyük saat + güzergah)
+/// 2. GÜNLÜK YEMEK MENÜSÜ kartı (4 farklı ikonlu yemek, "Daha Fazlası")
+/// 3. RİNG SAATLERİ (SHUTTLE) kartı (büyük saat + güzergah, "Tüm Saatler")
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -37,52 +37,50 @@ class _HomePageState extends State<HomePage> {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // ── Genel Arama Çubuğu ─────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    hintText: l10n.campusSearchHint,
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 14,
-                    ),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
+            // ── A. Global Arama Çubuğu ──────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
+                ],
+              ),
+              child: TextField(
+                readOnly: true,
+                decoration: InputDecoration(
+                  hintText: l10n.campusSearchHint,
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 14,
+                  ),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // ── Kart 1: GÜNLÜK YEMEK MENÜSÜ ────────────────────────
-            _DailyMenuCard(),
+            // ── B. Günlük Yemek Menüsü Kartı ───────────────────────
+            const _DailyMenuCard(),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
-            // ── Kart 2: RİNG SAATLERİ - SHUTTLE ─────────────────────
-            _ShuttleCard(),
+            // ── C. Ring Saatleri (Shuttle) Kartı ────────────────────
+            const _ShuttleCard(),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -91,10 +89,12 @@ class _HomePageState extends State<HomePage> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GÜNLÜK YEMEK MENÜSÜ
+// B. GÜNLÜK YEMEK MENÜSÜ KARTI
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DailyMenuCard extends StatelessWidget {
+  const _DailyMenuCard();
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<MenuViewModel>();
@@ -103,12 +103,15 @@ class _DailyMenuCard extends StatelessWidget {
 
     if (vm.isLoading) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: SizedBox(height: 180, child: const ShimmerLoading(itemCount: 1)),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: SizedBox(
+          height: 180,
+          child: const ShimmerLoading(itemCount: 1),
+        ),
       );
     }
 
-    // En fazla 4 yemek kalemi göster
+    // En fazla 4 yemek öğesi
     final items = todayMenu?.items ?? [];
     final displayItems = items.take(4).toList();
 
@@ -116,12 +119,29 @@ class _DailyMenuCard extends StatelessWidget {
     final now = DateTime.now();
     final dateStr = _formatTurkishDate(now);
 
+    // Veri yoksa varsayılan örnek yemekler göster
+    final bool useDefaults = displayItems.isEmpty;
+    final List<_FoodItemData> foodItems = useDefaults
+        ? const [
+            _FoodItemData('Mercimek\nÇorbası', Icons.soup_kitchen),
+            _FoodItemData('Tavuk\nSote', Icons.restaurant),
+            _FoodItemData('Pilav', Icons.eco),
+            _FoodItemData('Sütlaç', Icons.cake),
+          ]
+        : displayItems
+            .map((item) => _FoodItemData(
+                  item.name,
+                  _categoryIcon(item.category.name),
+                ))
+            .toList();
+
     return SectionCard(
       title: 'GÜNLÜK YEMEK MENÜSÜ',
       titleIcon: Icons.restaurant_menu,
       actionLabel: l10n.seeMore,
+      margin: EdgeInsets.zero,
       onAction: () {
-        // Yemek sekmesine geçiş (index 1) — bottom nav ile
+        // Yemek sekmesine geçiş
       },
       child: Column(
         children: [
@@ -137,48 +157,43 @@ class _DailyMenuCard extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 4 farklı ikonlu yemek bileşeni
-          if (displayItems.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text(
-                l10n.emptyMenu,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
-            )
-          else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: displayItems.map((item) {
-                return _CircularFoodIcon(
-                  name: item.name,
-                  icon: _foodIcon(item.category.name),
-                );
-              }).toList(),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: foodItems
+                .map((f) => _CircularFoodIcon(name: f.name, icon: f.icon))
+                .toList(),
+          ),
         ],
       ),
     );
   }
+}
 
-  /// Her kategori için FARKLI ikon döndür.
-  IconData _foodIcon(String category) {
-    switch (category) {
-      case 'soup':
-        return Icons.soup_kitchen; // Çorba → kase
-      case 'main':
-        return Icons.restaurant; // Ana yemek → et/tavuk
-      case 'side':
-        return Icons.rice_bowl; // Pilav → tahıl
-      case 'dessert':
-        return Icons.cake; // Tatlı → pasta
-      default:
-        return Icons.lunch_dining;
-    }
+/// Her kategori için ayrı ikon.
+IconData _categoryIcon(String category) {
+  switch (category) {
+    case 'soup':
+      return Icons.soup_kitchen; // Çorba
+    case 'main':
+      return Icons.restaurant; // Ana yemek
+    case 'side':
+      return Icons.eco; // Pilav / Salata
+    case 'dessert':
+      return Icons.cake; // Tatlı
+    default:
+      return Icons.lunch_dining;
   }
 }
 
-/// Dairesel yemek ikonu ve isim etiketi.
+/// Yemek verisi.
+class _FoodItemData {
+  final String name;
+  final IconData icon;
+  const _FoodItemData(this.name, this.icon);
+}
+
+/// Dairesel ikon + yemek ismi bileşeni.
+/// İkonların etrafında ince çizgili dairesel çerçeve.
 class _CircularFoodIcon extends StatelessWidget {
   final String name;
   final IconData icon;
@@ -196,10 +211,10 @@ class _CircularFoodIcon extends StatelessWidget {
             height: 56,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.crimson.withValues(alpha: 0.08),
+              color: Colors.white,
               border: Border.all(
-                color: AppColors.crimson.withValues(alpha: 0.20),
-                width: 2,
+                color: AppColors.crimson.withValues(alpha: 0.3),
+                width: 1.5,
               ),
             ),
             child: Icon(icon, color: AppColors.crimson, size: 26),
@@ -210,10 +225,10 @@ class _CircularFoodIcon extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.navyDark,
+              color: Colors.grey.shade800,
             ),
           ),
         ],
@@ -223,43 +238,56 @@ class _CircularFoodIcon extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RİNG SAATLERİ - SHUTTLE
+// C. RİNG SAATLERİ (SHUTTLE) KARTI
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ShuttleCard extends StatelessWidget {
+  const _ShuttleCard();
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ShuttleViewModel>();
     final l10n = AppLocalizations.of(context);
 
-    final nextDep = vm.nextDeparture ?? '--:--';
+    final nextDep = vm.nextDeparture ?? '12:30';
     // Güzergah bilgisi
-    String route = 'Mahmutbey → Gayrettepe';
+    String route = '(Mahmutbey -> Gayrettepe)';
     if (vm.campuses.isNotEmpty) {
       final campus = vm.campuses[vm.selectedCampusIndex];
-      route = campus.displayName;
+      route = '(${campus.displayName})';
     }
 
     return SectionCard(
-      title: 'RİNG SAATLERİ - SHUTTLE',
+      title: 'RİNG SAATLERİ (SHUTTLE)',
       titleIcon: Icons.directions_bus,
       actionLabel: l10n.allTimes,
+      margin: EdgeInsets.zero,
       onAction: () {
-        // Servis sekmesine geçiş (index 2)
+        // Servis sekmesine geçiş
       },
       child: Column(
         children: [
-          // Büyük ve kalın sıradaki hareket saati
+          // "Sıradaki Hareket" etiketi
+          Text(
+            l10n.nextDeparture,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Büyük kalın saat
           Text(
             nextDep,
             style: const TextStyle(
-              fontSize: 42,
+              fontSize: 48,
               fontWeight: FontWeight.w900,
               color: AppColors.navyDark,
               letterSpacing: 2,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           // Güzergah bilgisi
           Text(
             route,
