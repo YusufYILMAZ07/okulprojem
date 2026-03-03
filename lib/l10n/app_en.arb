@@ -45,5 +45,17 @@
   "yenibosna": "Yenibosna",
   "emptyMenu": "No menu loaded. Use \"Load from Excel\" to import monthly menu.",
   "emptyCalendar": "No academic events.",
-  "emptyShuttle": "No shuttle data."
+  "emptyShuttle": "No shuttle data.",
+  "home": "Home",
+  "quickInfo": "Quick Info",
+  "nextShuttle": "Next Shuttle",
+  "nextEvent": "Next Event",
+  "todayMenu": "Today's Menu",
+  "viewDetails": "View details",
+  "welcomeBack": "Welcome back",
+  "seeMore": "See More",
+  "allTimes": "All Times",
+  "nextDeparture": "Next Departure",
+  "fullCalendar": "Full Calendar",
+  "campusSearchHint": "Search campus..."
 }

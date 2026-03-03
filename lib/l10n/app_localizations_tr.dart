@@ -127,4 +127,40 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get emptyShuttle => 'Servis verisi yok.';
+
+  @override
+  String get home => 'Ana Sayfa';
+
+  @override
+  String get quickInfo => 'Hızlı Bilgiler';
+
+  @override
+  String get nextShuttle => 'Sıradaki Ring';
+
+  @override
+  String get nextEvent => 'Yaklaşan Etkinlik';
+
+  @override
+  String get todayMenu => 'Bugünün Menüsü';
+
+  @override
+  String get viewDetails => 'Detayları gör';
+
+  @override
+  String get welcomeBack => 'Hoş Geldin';
+
+  @override
+  String get seeMore => 'Daha Fazlası';
+
+  @override
+  String get allTimes => 'Tüm Saatler';
+
+  @override
+  String get nextDeparture => 'Sıradaki Hareket';
+
+  @override
+  String get fullCalendar => 'Tam Takvim';
+
+  @override
+  String get campusSearchHint => 'Kampüste ara...';
 }

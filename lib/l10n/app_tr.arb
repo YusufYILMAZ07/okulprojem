@@ -45,5 +45,17 @@
   "yenibosna": "Yenibosna",
   "emptyMenu": "Menü yüklenmedi. Aylık menü için \"Excel'den Yükle\" kullanın.",
   "emptyCalendar": "Akademik etkinlik yok.",
-  "emptyShuttle": "Servis verisi yok."
+  "emptyShuttle": "Servis verisi yok.",
+  "home": "Ana Sayfa",
+  "quickInfo": "Hızlı Bilgiler",
+  "nextShuttle": "Sıradaki Ring",
+  "nextEvent": "Yaklaşan Etkinlik",
+  "todayMenu": "Bugünün Menüsü",
+  "viewDetails": "Detayları gör",
+  "welcomeBack": "Hoş Geldin",
+  "seeMore": "Daha Fazlası",
+  "allTimes": "Tüm Saatler",
+  "nextDeparture": "Sıradaki Hareket",
+  "fullCalendar": "Tam Takvim",
+  "campusSearchHint": "Kampüste ara..."
 }

@@ -331,6 +331,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No shuttle data.'**
   String get emptyShuttle;
+
+  /// No description provided for @home.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get home;
+
+  /// No description provided for @quickInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Info'**
+  String get quickInfo;
+
+  /// No description provided for @nextShuttle.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Shuttle'**
+  String get nextShuttle;
+
+  /// No description provided for @nextEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Event'**
+  String get nextEvent;
+
+  /// No description provided for @todayMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Menu'**
+  String get todayMenu;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
+
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get welcomeBack;
+
+  /// No description provided for @seeMore.
+  ///
+  /// In en, this message translates to:
+  /// **'See More'**
+  String get seeMore;
+
+  /// No description provided for @allTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'All Times'**
+  String get allTimes;
+
+  /// No description provided for @nextDeparture.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Departure'**
+  String get nextDeparture;
+
+  /// No description provided for @fullCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Calendar'**
+  String get fullCalendar;
+
+  /// No description provided for @campusSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search campus...'**
+  String get campusSearchHint;
 }
 
 class _AppLocalizationsDelegate

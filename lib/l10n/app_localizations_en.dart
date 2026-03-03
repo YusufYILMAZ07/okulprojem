@@ -127,4 +127,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emptyShuttle => 'No shuttle data.';
+
+  @override
+  String get home => 'Home';
+
+  @override
+  String get quickInfo => 'Quick Info';
+
+  @override
+  String get nextShuttle => 'Next Shuttle';
+
+  @override
+  String get nextEvent => 'Next Event';
+
+  @override
+  String get todayMenu => 'Today\'s Menu';
+
+  @override
+  String get viewDetails => 'View details';
+
+  @override
+  String get welcomeBack => 'Welcome back';
+
+  @override
+  String get seeMore => 'See More';
+
+  @override
+  String get allTimes => 'All Times';
+
+  @override
+  String get nextDeparture => 'Next Departure';
+
+  @override
+  String get fullCalendar => 'Full Calendar';
+
+  @override
+  String get campusSearchHint => 'Search campus...';
 }
