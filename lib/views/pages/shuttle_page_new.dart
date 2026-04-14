@@ -61,12 +61,10 @@ class ShuttlePageNew extends StatelessWidget {
             const SizedBox(height: 20),
 
             // ── Güzergahlar Listesi ────────────────────────────────────
-            ...shuttleSchedules
-                .map((schedule) => _RouteCard(
-                      route: schedule['route'] as String,
-                      times: List<String>.from(schedule['times'] as List),
-                    ))
-                .toList(),
+            ...shuttleSchedules.map((schedule) => _RouteCard(
+                  route: schedule['route'] as String,
+                  times: List<String>.from(schedule['times'] as List),
+                )),
 
             const SizedBox(height: 20),
           ],

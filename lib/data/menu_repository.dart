@@ -4,7 +4,7 @@ import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 
-import '../models/menu_models.dart';
+import 'models/daily_menu.dart';
 
 /// Loads monthly menu from bundled JSON or from Excel/CSV picked by user.
 /// Excel format: col0 = date (YYYY-MM-DD or date), col1.. = food name; optional last col = calories per row or per-item column.
@@ -105,7 +105,11 @@ class MenuRepository {
         if (parts.isEmpty) continue;
         final date = DateTime.tryParse(parts[0].trim());
         if (date == null) continue;
-        final items = parts.skip(1).where((s) => s.trim().isNotEmpty).map((s) => FoodItem(name: s.trim())).toList();
+        final items = parts
+            .skip(1)
+            .where((s) => s.trim().isNotEmpty)
+            .map((s) => FoodItem(name: s.trim()))
+            .toList();
         if (items.isNotEmpty) menus.add(DailyMenu(date: date, items: items));
       }
       menus.sort((a, b) => a.date.compareTo(b.date));

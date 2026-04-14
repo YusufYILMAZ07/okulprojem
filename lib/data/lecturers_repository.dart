@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 import '../core/utils/turkish_utils.dart';
-import '../models/lecturer.dart';
+import 'models/lecturer.dart';
 
 /// Loads lecturers from bundled JSON (UTF-8). Email derived from name via Turkish normalization.
 class LecturersRepository {
