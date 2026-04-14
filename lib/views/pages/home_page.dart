@@ -1,19 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'dart:async';
 
 import '../../core/constants/app_colors.dart';
-import '../../l10n/app_localizations.dart';
-import '../../viewmodels/menu_viewmodel.dart';
-import '../../viewmodels/shuttle_viewmodel.dart';
-import '../widgets/section_card.dart';
-import '../widgets/shimmer_loading.dart';
 
-/// Ana Sayfa — Açık erişimli, öğrenci girişi yok.
-///
-/// Mobil dikey (portrait) düzen, SafeArea + SingleChildScrollView:
-/// 1. "Kampüste ara..." genel arama çubuğu
-/// 2. GÜNLÜK YEMEK MENÜSÜ kartı (4 farklı ikonlu yemek, "Daha Fazlası")
-/// 3. RİNG SAATLERİ (SHUTTLE) kartı (büyük saat + güzergah, "Tüm Saatler")
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -22,145 +11,384 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const Color _accent = Color(0xFF8B0000);
+  static const List<String> _campuses = [
+    'Mahmutbey',
+    'Gayrettepe',
+    'Bakırköy',
+  ];
+
+  final Map<String, List<String>> _ringTimesByCampus = const {
+    'Mahmutbey': ['08:00', '10:30', '12:30', '15:00', '17:15'],
+    'Gayrettepe': ['08:20', '11:00', '13:00', '15:40', '18:00'],
+    'Bakırköy': ['07:50', '10:00', '12:10', '14:30', '16:45'],
+  };
+
+  final Map<String, String> _routeByCampus = const {
+    'Mahmutbey': 'Mahmutbey -> Gayrettepe',
+    'Gayrettepe': 'Gayrettepe -> Bakırköy',
+    'Bakırköy': 'Bakırköy -> Mahmutbey',
+  };
+
+  final Map<String, List<_MenuItem>> _menuByCampus = const {
+    'Mahmutbey': [
+      _MenuItem('Çorba', 'Mercimek', Icons.soup_kitchen),
+      _MenuItem('Ana Yemek', 'Tavuk Sote', Icons.lunch_dining),
+      _MenuItem('Pilav', 'Bulgur Pilavı', Icons.rice_bowl),
+      _MenuItem('Tatlı', 'Sütlaç', Icons.cake),
+    ],
+    'Gayrettepe': [
+      _MenuItem('Çorba', 'Ezogelin', Icons.soup_kitchen),
+      _MenuItem('Ana Yemek', 'Etli Nohut', Icons.lunch_dining),
+      _MenuItem('Pilav', 'Şehriyeli Pirinç', Icons.rice_bowl),
+      _MenuItem('Tatlı', 'Revani', Icons.cake),
+    ],
+    'Bakırköy': [
+      _MenuItem('Çorba', 'Domates', Icons.soup_kitchen),
+      _MenuItem('Ana Yemek', 'Fırın Makarna', Icons.lunch_dining),
+      _MenuItem('Pilav', 'Sebzeli Bulgur', Icons.rice_bowl),
+      _MenuItem('Tatlı', 'Kazandibi', Icons.cake),
+    ],
+  };
+
+  final List<_AcademicEvent> _academicCalendar = [
+    _AcademicEvent(DateTime(2026, 3, 10), 'Vize Başvurularının Son Günü'),
+    _AcademicEvent(DateTime(2026, 3, 18), 'Ara Sınav Haftası Başlangıcı'),
+    _AcademicEvent(DateTime(2026, 4, 2), 'Ara Tatil Başlangıcı'),
+    _AcademicEvent(DateTime(2026, 4, 14), 'Derslerin Yeniden Başlaması'),
+    _AcademicEvent(DateTime(2026, 5, 20), 'Final Sınav Programı İlanı'),
+  ];
+
+  String _selectedCampus = _campuses.first;
+  Timer? _clockTimer;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MenuViewModel>().loadMenus(forceLocal: true);
-      context.read<ShuttleViewModel>().loadSchedule();
+    _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
     });
   }
 
   @override
+  void dispose() {
+    _clockTimer?.cancel();
+    super.dispose();
+  }
+
+  String? getNextShuttle() {
+    final now = DateTime.now();
+    final times = _ringTimesByCampus[_selectedCampus] ?? const [];
+
+    for (final time in times) {
+      final parts = time.split(':');
+      final departure = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+      );
+      if (departure.isAfter(now)) {
+        return time;
+      }
+    }
+    return null;
+  }
+
+  _AcademicEvent? getUpcomingEvent() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    for (final event in _academicCalendar) {
+      final eventDay =
+          DateTime(event.date.year, event.date.month, event.date.day);
+      if (!eventDay.isBefore(today)) {
+        return event;
+      }
+    }
+    return null;
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'Ocak',
+      'Şubat',
+      'Mart',
+      'Nisan',
+      'Mayıs',
+      'Haziran',
+      'Temmuz',
+      'Ağustos',
+      'Eylül',
+      'Ekim',
+      'Kasım',
+      'Aralık',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final nextShuttle = getNextShuttle();
+    final route = _routeByCampus[_selectedCampus] ?? '';
+    final selectedMenu = _menuByCampus[_selectedCampus] ?? const [];
+    final upcomingEvent = getUpcomingEvent();
 
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // ── A. Global Arama Çubuğu ──────────────────────────────
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                readOnly: true,
-                decoration: InputDecoration(
-                  hintText: l10n.campusSearchHint,
-                  hintStyle: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 14,
-                  ),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: Column(
+              children: [
+                _SearchBar(accent: _accent),
+                const SizedBox(height: 12),
+                _CampusSelector(
+                  campuses: _campuses,
+                  selectedCampus: _selectedCampus,
+                  onCampusSelected: (campus) {
+                    setState(() => _selectedCampus = campus);
+                  },
+                  accent: _accent,
                 ),
-              ),
+                const SizedBox(height: 16),
+                _RingCard(
+                  nextShuttle: nextShuttle,
+                  route: route,
+                  accent: _accent,
+                ),
+                const SizedBox(height: 12),
+                _AcademicCalendarCard(
+                  upcomingEvent: upcomingEvent,
+                  dateText: upcomingEvent == null
+                      ? ''
+                      : _formatDate(upcomingEvent.date),
+                  accent: _accent,
+                ),
+                const SizedBox(height: 12),
+                _MenuCard(
+                  selectedCampus: _selectedCampus,
+                  menuItems: selectedMenu,
+                  accent: _accent,
+                ),
+              ],
             ),
-
-            const SizedBox(height: 16),
-
-            // ── B. Günlük Yemek Menüsü Kartı ───────────────────────
-            const _DailyMenuCard(),
-
-            const SizedBox(height: 16),
-
-            // ── C. Ring Saatleri (Shuttle) Kartı ────────────────────
-            const _ShuttleCard(),
-
-            const SizedBox(height: 16),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// B. GÜNLÜK YEMEK MENÜSÜ KARTI
-// ─────────────────────────────────────────────────────────────────────────────
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.accent});
 
-class _DailyMenuCard extends StatelessWidget {
-  const _DailyMenuCard();
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<MenuViewModel>();
-    final l10n = AppLocalizations.of(context);
-    final todayMenu = vm.todayMenu;
-
-    if (vm.isLoading) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: SizedBox(
-          height: 180,
-          child: const ShimmerLoading(itemCount: 1),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        readOnly: true,
+        decoration: InputDecoration(
+          hintText: 'Kampüste ara...',
+          hintStyle: TextStyle(color: Colors.grey.shade500),
+          prefixIcon: Icon(Icons.search, color: accent),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
-      );
-    }
+      ),
+    );
+  }
+}
 
-    // En fazla 4 yemek öğesi
-    final items = todayMenu?.items ?? [];
-    final displayItems = items.take(4).toList();
+class _CampusSelector extends StatelessWidget {
+  const _CampusSelector({
+    required this.campuses,
+    required this.selectedCampus,
+    required this.onCampusSelected,
+    required this.accent,
+  });
 
-    // Bugünün tarihi
-    final now = DateTime.now();
-    final dateStr = _formatTurkishDate(now);
+  final List<String> campuses;
+  final String selectedCampus;
+  final ValueChanged<String> onCampusSelected;
+  final Color accent;
 
-    // Veri yoksa varsayılan örnek yemekler göster
-    final bool useDefaults = displayItems.isEmpty;
-    final List<_FoodItemData> foodItems = useDefaults
-        ? const [
-            _FoodItemData('Mercimek\nÇorbası', Icons.soup_kitchen),
-            _FoodItemData('Tavuk\nSote', Icons.restaurant),
-            _FoodItemData('Pilav', Icons.eco),
-            _FoodItemData('Sütlaç', Icons.cake),
-          ]
-        : displayItems
-            .map((item) => _FoodItemData(
-                  item.name,
-                  _categoryIcon(item.category.name),
-                ))
-            .toList();
+  @override
+  Widget build(BuildContext context) {
+    return ToggleButtons(
+      isSelected: campuses.map((c) => c == selectedCampus).toList(),
+      onPressed: (index) => onCampusSelected(campuses[index]),
+      borderRadius: BorderRadius.circular(12),
+      constraints: const BoxConstraints(minHeight: 40, minWidth: 108),
+      selectedBorderColor: accent,
+      borderColor: Colors.grey.shade300,
+      fillColor: accent,
+      color: Colors.grey.shade700,
+      selectedColor: Colors.white,
+      children: campuses
+          .map((campus) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  campus,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ))
+          .toList(),
+    );
+  }
+}
 
-    return SectionCard(
-      title: 'GÜNLÜK YEMEK MENÜSÜ',
-      titleIcon: Icons.restaurant_menu,
-      actionLabel: l10n.seeMore,
-      margin: EdgeInsets.zero,
-      onAction: () {
-        // Yemek sekmesine geçiş
-      },
+class _RingCard extends StatelessWidget {
+  const _RingCard({
+    required this.nextShuttle,
+    required this.route,
+    required this.accent,
+  });
+
+  final String? nextShuttle;
+  final String route;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BaseCard(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tarih
+          _CardTitle(
+              text: 'RİNG SAATLERİ',
+              icon: Icons.directions_bus,
+              accent: accent),
+          const SizedBox(height: 12),
           Text(
-            dateStr,
+            nextShuttle ?? 'Bugün için seferler tamamlandı',
             style: TextStyle(
-              fontSize: 13,
+              color: nextShuttle == null
+                  ? Colors.grey.shade700
+                  : AppColors.navyDark,
+              fontSize: nextShuttle == null ? 16 : 40,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            route,
+            style: TextStyle(
               color: Colors.grey.shade600,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
 
-          // 4 farklı ikonlu yemek bileşeni
+class _AcademicCalendarCard extends StatelessWidget {
+  const _AcademicCalendarCard({
+    required this.upcomingEvent,
+    required this.dateText,
+    required this.accent,
+  });
+
+  final _AcademicEvent? upcomingEvent;
+  final String dateText;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BaseCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CardTitle(
+                  text: 'AKADEMİK TAKVİM',
+                  icon: Icons.calendar_month,
+                  accent: accent,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  upcomingEvent?.name ?? 'Yaklaşan etkinlik bulunmuyor',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  dateText,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(Icons.chevron_right, color: accent, size: 28),
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuCard extends StatelessWidget {
+  const _MenuCard({
+    required this.selectedCampus,
+    required this.menuItems,
+    required this.accent,
+  });
+
+  final String selectedCampus;
+  final List<_MenuItem> menuItems;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BaseCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(
+              text: 'GÜNÜN MENÜSÜ',
+              icon: Icons.restaurant_menu,
+              accent: accent),
+          const SizedBox(height: 2),
+          Text(
+            selectedCampus,
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: foodItems
-                .map((f) => _CircularFoodIcon(name: f.name, icon: f.icon))
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: menuItems
+                .map(
+                  (item) => _CircularMenuIcon(item: item, accent: accent),
+                )
                 .toList(),
           ),
         ],
@@ -169,67 +397,42 @@ class _DailyMenuCard extends StatelessWidget {
   }
 }
 
-/// Her kategori için ayrı ikon.
-IconData _categoryIcon(String category) {
-  switch (category) {
-    case 'soup':
-      return Icons.soup_kitchen; // Çorba
-    case 'main':
-      return Icons.restaurant; // Ana yemek
-    case 'side':
-      return Icons.eco; // Pilav / Salata
-    case 'dessert':
-      return Icons.cake; // Tatlı
-    default:
-      return Icons.lunch_dining;
-  }
-}
+class _CircularMenuIcon extends StatelessWidget {
+  const _CircularMenuIcon({required this.item, required this.accent});
 
-/// Yemek verisi.
-class _FoodItemData {
-  final String name;
-  final IconData icon;
-  const _FoodItemData(this.name, this.icon);
-}
-
-/// Dairesel ikon + yemek ismi bileşeni.
-/// İkonların etrafında ince çizgili dairesel çerçeve.
-class _CircularFoodIcon extends StatelessWidget {
-  final String name;
-  final IconData icon;
-
-  const _CircularFoodIcon({required this.name, required this.icon});
+  final _MenuItem item;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 76,
+      width: 74,
       child: Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
-              border: Border.all(
-                color: AppColors.crimson.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
+              border:
+                  Border.all(color: accent.withValues(alpha: 0.35), width: 1.4),
             ),
-            child: Icon(icon, color: AppColors.crimson, size: 26),
+            child: Icon(item.icon, color: accent, size: 24),
           ),
           const SizedBox(height: 6),
           Text(
-            name,
+            item.type,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            item.name,
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade800,
-            ),
           ),
         ],
       ),
@@ -237,101 +440,74 @@ class _CircularFoodIcon extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// C. RİNG SAATLERİ (SHUTTLE) KARTI
-// ─────────────────────────────────────────────────────────────────────────────
+class _BaseCard extends StatelessWidget {
+  const _BaseCard({required this.child});
 
-class _ShuttleCard extends StatelessWidget {
-  const _ShuttleCard();
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<ShuttleViewModel>();
-    final l10n = AppLocalizations.of(context);
-
-    final nextDep = vm.nextDeparture ?? '12:30';
-    // Güzergah bilgisi
-    String route = '(Mahmutbey -> Gayrettepe)';
-    if (vm.campuses.isNotEmpty) {
-      final campus = vm.campuses[vm.selectedCampusIndex];
-      route = '(${campus.displayName})';
-    }
-
-    return SectionCard(
-      title: 'RİNG SAATLERİ (SHUTTLE)',
-      titleIcon: Icons.directions_bus,
-      actionLabel: l10n.allTimes,
-      margin: EdgeInsets.zero,
-      onAction: () {
-        // Servis sekmesine geçiş
-      },
-      child: Column(
-        children: [
-          // "Sıradaki Hareket" etiketi
-          Text(
-            l10n.nextDeparture,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          // Büyük kalın saat
-          Text(
-            nextDep,
-            style: const TextStyle(
-              fontSize: 48,
-              fontWeight: FontWeight.w900,
-              color: AppColors.navyDark,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          // Güzergah bilgisi
-          Text(
-            route,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
+      child: child,
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Yardımcılar
-// ─────────────────────────────────────────────────────────────────────────────
+class _CardTitle extends StatelessWidget {
+  const _CardTitle({
+    required this.text,
+    required this.icon,
+    required this.accent,
+  });
 
-String _formatTurkishDate(DateTime d) {
-  const months = [
-    '',
-    'Ocak',
-    'Şubat',
-    'Mart',
-    'Nisan',
-    'Mayıs',
-    'Haziran',
-    'Temmuz',
-    'Ağustos',
-    'Eylül',
-    'Ekim',
-    'Kasım',
-    'Aralık',
-  ];
-  const days = [
-    '',
-    'Pazartesi',
-    'Salı',
-    'Çarşamba',
-    'Perşembe',
-    'Cuma',
-    'Cumartesi',
-    'Pazar',
-  ];
-  return '${d.day} ${months[d.month]}, ${days[d.weekday]}';
+  final String text;
+  final IconData icon;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: accent),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            color: accent,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MenuItem {
+  final String type;
+  final String name;
+  final IconData icon;
+
+  const _MenuItem(this.type, this.name, this.icon);
+}
+
+class _AcademicEvent {
+  final DateTime date;
+  final String name;
+
+  const _AcademicEvent(this.date, this.name);
 }
